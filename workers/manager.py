@@ -40,4 +40,4 @@ class WorkerManager:
         self.start_worker(name, *args)
 
     def read_thread_stdout(self, line):
-        print(f"Tunneled from worker: {line}")
+        print(f"{line} - Tunneled from worker")

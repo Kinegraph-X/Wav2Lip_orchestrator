@@ -50,39 +50,15 @@ class PlaybackWorker(Process):
 			command = 'python -u video_playback_vlc.py'
 			sp = subprocess.Popen(command, cwd = "../Wav2Lip_resident/", stdout=subprocess.PIPE)
 
-			"""
-			while True:
-				ready_connections = multiprocessing.connection.wait([self.dest_con], timeout=0.1)
-				if self.dest_con in ready_connections:
-					dummy = self.dest_con.recv()
-					break
-			"""
-
 			# Start a thread to read the output (problem with sys.stdout, shared accross threads in the subprocess, colliding with reading it from another process)
 			threading.Thread(target=self.read_subprocess_output, args=(sp, self.output_queue), daemon=True).start()
 
 			while not self.dest_con.poll(timeout = 0.1):
-				"""
-				if sp.stdout:
-					readable, _, _ = select.select([sp.stdout], [], [], 0.1)
-					for stream in readable:
-						line = stream.readline()
-						if line:  # Check if a line was actually read
-							self.print_callback(line.decode('utf-8'))
-				"""
-				"""
-						if sp.stdout:
-							line = sp.stdout.readline()
-							if line:
-								self.print_callback(line.decode('utf-8'))
-				"""
-				# """
 				try:
 					line = self.output_queue.get_nowait()
 					self.print_callback(line)
 				except queue.Empty:
 					pass
-				# """
 			
 			with open(self.exit_flag_path, "w") as f:
 				f.write("EXIT")
