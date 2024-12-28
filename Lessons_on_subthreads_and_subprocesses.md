@@ -584,6 +584,7 @@ print("Main thread exiting...")
 
 # QUESTION :
 
+```python
 request_thread = ThreadWithReturnValue(target = session.get, args = (ngrok_url,), kwargs = {"params" : {"next_batch" : 'True'}})
     try:
         request_thread.start()
@@ -592,6 +593,7 @@ request_thread = ThreadWithReturnValue(target = session.get, args = (ngrok_url,)
         print(f'Polling connection failed : {str(e)}')
     else:
         content_type = response.headers.get('content-type').split(";")[0].lower()
+```
 
 But using threading like that doesn't allow the try/except block to catch "ConnectionRefusedError: [WinError 10061]"
 
@@ -601,11 +603,11 @@ But using threading like that doesn't allow the try/except block to catch "Conne
 
 
 
-### ThreadWithReturnVakye must remember exceptions raised in its context, and re-raise them on join()
+### ThreadWithReturnValue must remember exceptions raised in its context, and re-raise them on join()
 
 OK, my implem was missing that (bloody Stack-overflow...)
 
-## Alternative Approach: Use concurrent.futures.ThreadPoolExecutor
+### Alternative Approach: Use concurrent.futures.ThreadPoolExecutor
 If you don’t need a custom threading class, Python’s concurrent.futures module provides a simpler way to handle exceptions and return values from threads:
 
 ```python
