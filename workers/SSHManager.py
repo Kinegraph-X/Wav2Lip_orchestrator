@@ -1,4 +1,5 @@
 import os, platform, sys
+from datetime import datetime
 import threading, paramiko
 from paramiko.ssh_exception import SSHException, NoValidConnectionsError
 from signal import Signals
@@ -7,7 +8,12 @@ from dotenv import load_dotenv
 load_dotenv()
 import time
 
+
 # paramiko.util.log_to_file("paramiko_debug.log")
+
+def get_time():
+	current_datetime = datetime.now()
+	return current_datetime.strftime("%Y-%m-%d %H:%M:%S") + " :"
 
 class SSHManager:
 	def __init__(self, full_address, key_file = None, password = None, stop_event = None, port=22, timeout=10):
@@ -26,7 +32,6 @@ class SSHManager:
 		self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
 	def connect_to_server(self, queue = None):
-		"""Establish an SSH connection to the remote server."""
 		# self.stop_event = threading.Event()
 		try:
 			if self.key_file:
@@ -53,7 +58,7 @@ class SSHManager:
 		if self.client:
 			self.client.close()
 			self.client = None
-			queue.put("SSH Client closed")
+			queue.put(f"{get_time()} INFO : SSH Client closed")
 
 	def send_sigint(self, queue):
 		if self.client:
@@ -65,11 +70,12 @@ class SSHManager:
 					os = 'unix-like'
 
 				if os == "win":
-					stdin, stdout, stderr = self.client.exec_command('wmic process where "name like \'%python%\'" get processid')
+					stdin, stdout, stderr = self.client.exec_command('wmic process where "commandline like \'%daemon.py%\'" get processid')
 					for line in iter(stdout.readline, ""):
 						line = line.strip()
-						if (len(line)):
+						if (len(line) and line != "ProcessId"):
 							pid = line
+							break
 
 					self.client.exec_command(f'taskkill /pid {pid} /f')
 				else:
@@ -77,7 +83,7 @@ class SSHManager:
 					pid = stdout.read().strip()
 					self.client.exec_command(f"kill -9 {pid}")
 
-				queue.put("SIGINT sent to server")
+				queue.put(f"{get_time()} INFO : SIGINT sent to {os} server for pid {pid}")
 			except Exception as e:
 				import os
 				exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -89,38 +95,32 @@ class SSHManager:
 		if not self.client:
 			raise ConnectionError("SSH connection is not established.")
 		try:
-			queue.put("Running a command on the remote server")
+			queue.put(f"{get_time()} INFO : Running a command on the remote server")
 			stdin, stdout, stderr = self.client.exec_command(command)
+
 			threading.Thread(target = self.read_output, args = (stdout, stderr, queue), daemon = True).start()
 
-			"""
-				# Read stdout in real-time
-			for line in iter(stdout.readline, ""):
-				if queue:
-					queue.put(line.strip())  # Send to orchestrator
-
-			queue.put("no more lines")
-			stdout.channel.close()
-			
-			
-			"""
 		except Exception as e:
 			raise RuntimeError(f"Failed to execute command '{command}': {e}")
 
 	def read_output(self, stdout, stderr, queue):
-		for line in iter(stdout.readline, ""):
-			if queue:
-				queue.put(line.strip())  # Send to orchestrator
+		try:
+			for line in iter(stdout.readline, ""):
+				if queue:
+					queue.put(line.strip())  # Send to orchestrator
 
-		queue.put("no more lines")
-		stdout.channel.close()
-		exit_status = stdout.channel.recv_exit_status()
-		output = stdout.read().decode().strip()
-		error = stderr.read().decode().strip()
-		
-		if exit_status != 0:
-			raise RuntimeError(f"Command failed: {error}")
-		queue.put(f'SSH server returned stdout : {output} & stderr : {error}')
+			queue.put(f"{get_time()} : INFO : no more lines returned by SSH")
+			stdout.channel.close()
+			exit_status = stdout.channel.recv_exit_status()
+			# output = stdout.read().decode().strip()
+			error = stderr.read().decode().strip()
+			
+			# abrupt exit code is expected
+			# if exit_status != 0:
+			# 	raise RuntimeError(f"Command failed: {error}")
+			queue.put(f'{get_time()} : INFO : SSH server readeline closed : no stderr will be shown')
+		except Exception as e:
+			queue.put(f'Thread reading the output of SSH was terminated with an exception : {e}')
 
 	def is_server_reachable(self):
 		"""Check if the server is reachable."""
@@ -130,3 +130,4 @@ class SSHManager:
 			return True
 		except ConnectionError:
 			return False
+		

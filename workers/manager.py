@@ -16,7 +16,6 @@ class WorkerManager:
 
     def reset_worker_instance(self, name):
         self.workers[name] = self.worker_ctors[name]()
-        # self.workers[name].print_callback = self.create_print_callback(name)
         self.workers[name].print_queue = self.message_queues[name]
         self.workers[name].state = WorkerState.STOPPED
 
@@ -25,9 +24,11 @@ class WorkerManager:
             raise RuntimeError(f"ERROR : {name} : Worker is already running.")
         elif name not in self.workers:
             raise RuntimeError(f"No instance available for Worker {name}.")
-
-        self.workers[name].start()
-        self.workers[name].state = WorkerState.RUNNING
+        try:
+            self.workers[name].start()
+            self.workers[name].state = WorkerState.RUNNING
+        except Exception as e:
+            raise e
 
         return self.message_queues[name]
 
@@ -47,12 +48,10 @@ class WorkerManager:
         worker = self.workers.get(name)
         if not worker:
             return self.format_status(name, f"ERROR : {name} : No instance available for Worker")
-        elif worker.state == WorkerState.STOPPED:
-            return self.format_status(name, f"ERROR : {name} : {WorkerState.STOPPED.value}")
 
-        if not worker.is_alive():
+        if worker.state == WorkerState.RUNNING and not worker.is_alive():
             worker.state = WorkerState.ERROR
-        return self.format_status(name, f"{name} {worker.state.value}")
+        return self.format_status(name, f"{worker.state.value}")
 
     def format_status(self, name, status_string):
         # Get the messages in the queue (non-blocking)
@@ -67,12 +66,3 @@ class WorkerManager:
             "status": f"{status_string}",
             "message_stack": messages
         }
-
-    def restart_worker(self, name, *args):
-        try:
-            self.stop_worker(name)
-        except Exception as e:
-            message = self.format_status(name, str(e))
-        self.start_worker(name, *args)
-
-        return message

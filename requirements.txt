@@ -2,3 +2,6 @@ flask
 paramiko
 python-dotenv
 Flask-Cors
+pystray
+pillow
+zeroconf

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Wav2Lip_orchestrator_frontend</title>
+	<link rel="stylesheet" href="css/style.css"/>
+	<script async="true" src="http://localhost:35729/livereload.js"></script>
+	<script src="Wav2Lip_orchestrator_frontend.js"></script>
+</head>
+
+<body>
+	<menu></menu>
+	<script type="text/javascript">
+		"use strict";
+		window.addEventListener('DOMContentLoaded', function() {
+			if (typeof Wav2Lip_orchestrator_frontendLauncher === 'function')
+			 	Wav2Lip_orchestrator_frontendLauncher().init('body');
+			else {
+				console.error('Probable bundling error, the launcher function isn\'t in the page')
+			}
+		});
+	</script>
+</body>
+</html>

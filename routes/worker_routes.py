@@ -1,5 +1,6 @@
-import sys, json
-from flask import Blueprint, jsonify, request, Response
+import os, sys, mimetypes
+from flask import Blueprint, jsonify, request, send_from_directory
+import werkzeug
 from flask_cors import cross_origin
 from workers.manager import WorkerManager
 from workers.worker_states import WorkerState
@@ -21,6 +22,23 @@ def worker_routes(manager):
         current_datetime = datetime.now()
         return current_datetime.strftime("%Y-%m-%d %H:%M:%S") + " :"
 
+    # """
+    @worker_routes.route("/", methods=["GET"])
+    def get_index():
+        return send_from_directory('front', 'index.html'), 200, {"Content-Type" : 'text/html'}
+    # """
+
+    @worker_routes.route("/<path:path>", methods=["GET"])
+    def get_dist(path):
+        try :
+            if not path:
+                return send_from_directory('front', 'index.html'), 200, {"Content-Type" : 'text/html'}    
+            return send_from_directory('front', path), 200, {"Content-Type" : mimetypes.guess_type(path)}
+        except werkzeug.exceptions.NotFound as e:
+            if path.endswith("/"):
+                return 404
+            raise e
+
     @worker_routes.route("/start_worker", methods=["POST"])
     @cross_origin(headers=['Content-Type'], origins=['http://127.0.0.1:5000']) 
     def start_worker():
@@ -40,7 +58,12 @@ def worker_routes(manager):
         name = data.get("name")
         try:
             status_obj = manager.stop_worker(name)
-            return jsonify({"type" : "end_status", "message": f"{get_time()} SUCCESS : Request for {name} stop transmitted successfully.", "message_stack" : status_obj['message_stack']})
+            return jsonify({
+                "type" : "end_status",
+                "message": f"{get_time()} SUCCESS : Request for {name} stop transmitted successfully.",
+                "message_stack" : status_obj['message_stack'],
+                "status": f'{get_time()} {status_obj["status"]}'
+                })
         except Exception as e:
             return jsonify({"type" : "error", "message" : f"{get_time()} {str(e)}"}), 200
 

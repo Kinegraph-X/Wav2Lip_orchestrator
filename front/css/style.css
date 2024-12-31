@@ -1,0 +1,61 @@
+html {
+	width : 100%;
+	height : 100%;
+/* 	overflow : hidden; */
+}
+
+body {
+	display : flex;
+	flex-flow : column;
+	align-items: center;
+	width : 100%;
+/* 	height : 100%; */
+	font-family: roboto, verdana, helvetica, arial, calibri, sans-serif;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	outline:0;
+/*  	background:transparent; */
+	vertical-align: bottom;
+	tab-size : 4;
+	box-sizing : border-box;
+	/* overflow-y : scroll; */
+}
+
+
+iframe {
+	height: 40%;
+	border: 1px solid #444;
+	background-color: #333;
+	box-sizing: border-box;
+	margin: 0;
+}
+
+svg {
+	width : 100%;
+	height : 100%;
+	box-sizing: border-box;
+}
+
+/* Not inherited => no use */
+textarea {
+	resize : 'none';
+}
+
+body {
+	background-color : #161e22;
+	font-size : 15px;
+	color : #FAFAFA;
+	line-height : 25px;
+}
+
+menu {
+	background-color: #2e3138;
+	display: flex;
+	flex-direction: row;
+	box-sizing: border-box;
+	width: 100%;
+	height: 44px;
+	margin : 0;
+	box-shadow: 2px 2px 10px 0px rgba(0,0,0,.12);
+}

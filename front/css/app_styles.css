@@ -1,0 +1,79 @@
+h1, h2, h3, h4, h5, h6 {
+    margin : 0px;
+  }
+  
+  .row {
+    display : flex;
+    justify-content : space-evenly;
+  }
+  
+  .margin_top {
+    margin-top: 38px;
+  }
+  
+  button {
+    display : block;
+    justify-content : center; /*hack cause we don't run scoped CSS, so the framework shall display flex at some point*/
+    background-repeat : no-repeat;
+    color : #000;
+    font-size : 15px;
+    width : 101px;
+    margin : 7px;
+    padding : 5px 0px;
+    border : none;
+    border-radius : 7px;
+    cursor : pointer;
+  }
+  
+  .run_button {
+    background-color : #00904400;
+    filter: invert(90%) sepia(5%) saturate(5026%) hue-rotate(175deg) brightness(100%) contrast(102%);
+    background-image: url(img/play-circle-outline.svg);
+  }
+  
+  .stop_button {
+    background-color : #BD222200;
+    filter: invert(21%) sepia(99%) saturate(1962%) hue-rotate(348deg) brightness(89%) contrast(89%);
+    background-image: url(img/stop-circle-outline.svg);
+  }
+  
+  .status_button {
+    background-color : #5550;
+    filter: invert(32%) sepia(0%) saturate(0%) hue-rotate(172deg) brightness(95%) contrast(84%);
+    background-image: url(img/cube-outline.svg);
+  }
+  
+  .restart_button {
+    background-color : #22779900;
+    filter: invert(36%) sepia(94%) saturate(385%) hue-rotate(151deg) brightness(91%) contrast(90%);
+    background-image: url(img/refresh-outline.svg);
+  }
+
+  .run_button:hover {
+    filter: invert(90%) sepia(5%) saturate(5026%) hue-rotate(175deg) brightness(200%) contrast(102%);
+  }
+  
+  .stop_button:hover {
+    filter: invert(21%) sepia(99%) saturate(1962%) hue-rotate(348deg) brightness(180%) contrast(89%);
+  }
+  
+  .status_button:hover {
+    filter: invert(32%) sepia(0%) saturate(0%) hue-rotate(172deg) brightness(190%) contrast(84%);
+  }
+  
+  .restart_button:hover {
+    filter: invert(36%) sepia(94%) saturate(385%) hue-rotate(151deg) brightness(180%) contrast(90%);
+  }
+
+.column_content div {
+  background-color: #22242B;
+  padding : 16px 21px 21px 21px;
+  border : 2px solid #1A1824;
+  border-width : 2px 1px 1px 1px;
+  border-color : #997755 #1A1824 #1A1824 #443311;
+  border-radius : 12px;
+}
+
+ .column_content h4 {
+    margin-bottom : 24px;
+  }

@@ -1,5 +1,10 @@
 __pycache__/
 .env
 static/keys/*
+Avatar_orchestrator.build/
+Avatar_orchestrator.dist/
+Avatar_tray_app.build/
+Avatar_tray_app.dist/
+dist/
 
 !static/keys/readme.md
