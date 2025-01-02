@@ -24,6 +24,7 @@ def worker_routes(manager):
 
     # """
     @worker_routes.route("/", methods=["GET"])
+    @worker_routes.route("/admin", methods=["GET"])
     def get_index():
         return send_from_directory('front', 'index.html'), 200, {"Content-Type" : 'text/html'}
     # """

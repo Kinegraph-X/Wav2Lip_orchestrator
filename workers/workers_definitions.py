@@ -7,6 +7,7 @@ from workers.SSHManager import SSHManager
 from dotenv import load_dotenv
 load_dotenv()
 from args_parser import args
+from config import main_config
 
 if args.ssh_addr.split("@")[1] == "localhost":
 	key_file = os.getenv("SSH_KEY_FILE")
@@ -19,6 +20,7 @@ def get_time():
 
 class ServerWorker(Process):
 	name = "server"
+	remote_env_init_command = main_config.remote_env_init_command
 
 	def __init__(self, debug=False, dist=False, avatar_type = '', **kwargs):
 		super(ServerWorker, self).__init__()
@@ -38,7 +40,8 @@ class ServerWorker(Process):
 				elif self.dist:
 					server_command = f"cd {os.path.abspath('../../../Wav2Lip_with_cache')} && python -u daemon.py"
 				else:
-					server_command = f'source /settings/.lightningrc && cd Wav2Lip_with_cache && python -u daemon.py'
+					# don't forget to adapt the remote env init command to the actual ssh env of your provider (in config.py)
+					server_command = f'{self.remote_env_init_command} cd Wav2Lip_with_cache && python -u daemon.py'
 
 				self.ssh_manager.run_command(server_command, self.print_queue, self.dest_con)
 
@@ -46,6 +49,7 @@ class ServerWorker(Process):
 					continue
 				
 				self.ssh_manager.send_sigint(self.print_queue)
+				self.print_queue.put(f"{get_time()} INFO : Confirmed function returnd after sending SIGINT")
 				self.ssh_manager.disconnect(self.print_queue)
 			except RuntimeError as e:
 				self.print_queue.put(f"Failed to run the command start the server: {e}")
@@ -56,7 +60,7 @@ class ServerWorker(Process):
 		
 	def terminate(self):
 		self.origin_con.send('stop')
-		time.sleep(1)
+		time.sleep(8)
 		super().terminate()
 
 class PlaybackWorker(Process):

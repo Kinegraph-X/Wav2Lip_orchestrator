@@ -1,5 +1,6 @@
 import os, platform, sys
 from datetime import datetime
+import re
 import threading, paramiko
 from paramiko.ssh_exception import SSHException, NoValidConnectionsError
 from signal import Signals
@@ -77,23 +78,65 @@ class SSHManager:
 
 				if os == "win":
 					stdin, stdout, stderr = self.client.exec_command('wmic process where "commandline like \'%daemon.py%\'" get processid')
+					pid = None
 					for line in iter(stdout.readline, ""):
 						line = line.strip()
 						if (len(line) and line != "ProcessId"):
 							pid = line
 							break
-
-					self.client.exec_command(f'taskkill /pid {pid} /f')
+					if pid:
+						self.client.exec_command(f'taskkill /pid {pid} /f')
+						queue.put(f"{get_time()} INFO : SIGINT sent to {os} server for pid {pid}")
+					else:
+						queue.put(f"{get_time()} ERROR : error while sending SIGINT to {os} server for pid {pid}")
 				else:
-					stdin, stdout, stderr = self.client.exec_command('echo $!')
-					pid = stdout.read().strip()
-					self.client.exec_command(f"kill -9 {pid}")
+					try:
+						stdin, stdout, stderr = self.client.exec_command('ps aux | grep daemon.py')
+						
+						# processes = stdout.read().decode('utf-8')
+						# queue.put(f"{get_time()} DEBUG: ps aux output: {processes}")
+						pid = None
+						pid_match = re.search('\d+', stdout.read().strip().decode('utf-8'))
+						stdout.channel.close()
+						stderr.channel.close()
+						queue.put(f"{get_time()} DEBUG: re search output: {pid_match}")
+						
+						if pid_match:
+							pid = pid_match.group(0)
+							queue.put(f"{get_time()} INFO : re match for pid {pid}")
+							# stdin, stdout, stderr = self.client.exec_command(f'echo "that command worked"')
+							# test_command = stdout.read().strip().decode('utf-8')
+							# stdout.channel.close()
+							# stderr.channel.close()
+							# queue.put(f'Next command {test_command}')
+							# stdin, stdout, stderr = self.client.exec_command(f'kill 0 {pid}')
+							# queue.put(f'Just a try {stdout.read().strip()}')
+							# stdout.channel.close()
+							# stderr.channel.close()
+							stdin, stdout, stderr = self.client.exec_command(f"kill -9 {pid}")
+							exit_status = stdout.channel.recv_exit_status()
+							# time.sleep(2)
+							stdout.channel.close()
+							stderr.channel.close()
+						
+						# Verify process no longer exists
+						# stdin, stdout, stderr = self.client.exec_command(f"ps -p {pid}")
+						# if not stdout.read().strip():
+						# 	queue.put(f"{get_time()} INFO : Successfully terminated process {pid}")
+						# else:
+						# 	queue.put(f"{get_time()} ERROR : Failed to terminate process {pid}")
+						# stdout.channel.close()
+						# stderr.channel.close()
+						queue.put(f"{get_time()} INFO : SIGINT sent to {os} server for pid {pid} with exit status {exit_status}")
+					except Exception as e:
+						queue.put(f"{get_time()} ERROR : while SIGINT to {os} server for pid {pid}")
 
-				queue.put(f"{get_time()} INFO : SIGINT sent to {os} server for pid {pid}")
+				
 			except Exception as e:
 				import os
 				exc_type, exc_obj, exc_tb = sys.exc_info()
 				fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+				queue.put(f'{e} {exc_type} {fname} {exc_tb.tb_lineno}')
 				raise Exception(f'Exception raised when sending SIGTERM to the distant server : {e} {exc_type} {fname} {exc_tb.tb_lineno}')
 	
 	def run_command(self, command, queue, interrupt_conn = None):

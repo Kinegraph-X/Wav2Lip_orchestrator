@@ -26719,6 +26719,146 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		return workerButtonsGroup;
 	}
 
+	var startAllbutton_template;
+	var hasRequiredStartAllbutton_template;
+
+	function requireStartAllbutton_template () {
+		if (hasRequiredStartAllbutton_template) return startAllbutton_template;
+		hasRequiredStartAllbutton_template = 1;
+		const {TemplateFactory} = requireFormant();
+		const {endpoints} = requireConstants();
+
+		function get_button_template() {
+		    const button_templates = {};
+
+		    Object.keys(endpoints).forEach(function(endpointName) {
+
+		    button_templates[endpointName] = TemplateFactory.createDef({
+		            host : TemplateFactory.createHostDef({
+		                type : 'ClickableComponent',
+		                nodeName : 'button',
+		                attributes : [
+		                    {className : endpointName + '_button'},
+		                    {textContent : endpointName}
+		                ]
+		            })
+		        });
+		    });
+
+		    return button_templates
+		}
+
+		startAllbutton_template = get_button_template;
+		return startAllbutton_template;
+	}
+
+	var startAllButtonsGroup;
+	var hasRequiredStartAllButtonsGroup;
+
+	function requireStartAllButtonsGroup () {
+		if (hasRequiredStartAllButtonsGroup) return startAllButtonsGroup;
+		hasRequiredStartAllButtonsGroup = 1;
+		const {TemplateFactory} = requireFormant();
+		const {statuses} = requireConstants();
+		const get_button_template = requireStartAllbutton_template();
+		const get_api_requests = requireApi();
+		const apiInterpreter = requireApiInterpreter();
+
+		startAllButtonsGroup = function(workerNames, endpointNames) {
+
+		    const requests = {};
+		    workerNames.forEach(function(workerName) {
+		        requests[workerName] = get_api_requests(workerName);
+		    });
+
+		    function makeStandardRequest(workerName, endpoint) {
+		        const self = this;
+		        requests[workerName][endpoint]()
+		            .catch(function(error) {
+		                console.error(error);
+		            })
+		            .then(function(response) {
+		                if (response && response.ok) {
+		                    const isSuccess = apiInterpreter.interpretResponse(workerName, response);  // passing a ref to self is a small hack 
+		                                                                                            // to be able to refresh statuses when calling /status_worker
+		                    if (isSuccess) {
+		                        if (endpoint === 'run') {
+		                            apiInterpreter.startupCheck(workerName);
+		                        }
+		                    }
+		                }
+		            });
+		    }
+
+		    function makeRestartRequest(workerName) {
+		        const self = this;
+		        makeStandardRequest.call(this, workerName, 'stop');
+
+		        setTimeout(function() {
+		            makeStandardRequest.call(self, workerName, 'run');
+		        }, 3000);
+		    }
+
+		    return TemplateFactory.createDef({
+		        host : TemplateFactory.createHostDef({
+		            type : 'CompoundComponent',
+		            nodeName : 'div',
+		            props : [
+		                {statusFeedback : undefined}
+		            ],
+		            reactOnSelf : [
+		                {
+		                    cbOnly : true,
+		                    from : 'statusFeedback',
+		                    subscribe : function(value) {
+		                        if (value === statuses.running) {
+		                            this._children[0].view.setPresence(false);
+		                            this._children[1].view.setPresence(true);
+		                        }
+		                        else if (value === statuses.stopped) {
+		                            this._children[0].view.setPresence(true);
+		                            this._children[1].view.setPresence(false);
+		                        }
+		                        else if (value === statuses.error) {
+		                            this._children[0].view.setPresence(false);
+		                            this._children[1].view.setPresence(false);
+		                        }
+		                    }
+		                }
+		            ],
+		            subscribeOnChild : [
+		                {
+		                    on : 'clicked_ok',
+		                    subscribe : function(e) {
+		                        const self = this;
+		                        const endpoint = endpointNames[e.data.key];
+		                        if (e.data.key === 3) {
+		                            for (let i = 0, max = 2; i < max; i++) {
+		                                let workerName = workerNames[i];
+		                                setTimeout(function() {
+		                                    makeRestartRequest.call(self, workerName);
+		                                }, i * 2000);
+		                            }
+		                        }
+		                        else {
+		                            for (let i = 0, max = 2; i < max; i++) {
+		                                let workerName = workerNames[i];
+		                                setTimeout(function() {
+		                                    makeStandardRequest.call(self, workerName, endpoint);
+		                                }, i * 2000);
+		                            }
+		                        }
+		                        
+		                    }
+		                }
+		            ]
+		        }),
+		        members : Object.values(get_button_template())
+		    })
+		};
+		return startAllButtonsGroup;
+	}
+
 	var listTemplate;
 	var hasRequiredListTemplate;
 
@@ -26899,7 +27039,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		default: innerCSS
 	});
 
-	var require$$8 = /*@__PURE__*/getAugmentedNamespace(innerCSS$1);
+	var require$$9 = /*@__PURE__*/getAugmentedNamespace(innerCSS$1);
 
 	var app;
 	var hasRequiredApp;
@@ -26910,13 +27050,14 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		const {App, TemplateFactory} = requireFormant();
 		const {endpoints, workers, statuses} = requireConstants();
 		const getWorkerButtonsGroup = requireWorkerButtonsGroup();
+		const getSartAllButton = requireStartAllButtonsGroup();
 		const getListsTemplates = requireListTemplate();
 		const get_column_templates = requireStatusColumnsTemplate();
 		const get_column_template = requireActionColumnsTemplate();
 		const apiInterpreter = requireApiInterpreter();
 		const UIManager = requireUIManager();
 
-		const innerStyles = require$$8;
+		const innerStyles = require$$9;
 
 
 		/**
@@ -26942,17 +27083,27 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 					});
 					
 					// Buttons section
+					
 					const endpointNames = Object.keys(endpoints);
-					const buttonSectionMembers = Object.keys(workers).map(function(worker, key) {
-						const workerActionsTemplate = getWorkerButtonsGroup(worker, endpointNames);
-						workerActionsTemplate.members.unshift(TemplateFactory.createHostDef({nodeName : 'h4', attributes : [{textContent : worker}]}));
-						return workerActionsTemplate
-					});
+					let buttonSectionMembers;
+					if (location.pathname.includes('admin')) {
+						buttonSectionMembers = Object.keys(workers).map(function(worker, key) {
+							const workerActionsTemplate = getWorkerButtonsGroup(worker, endpointNames);
+							workerActionsTemplate.members.unshift(TemplateFactory.createHostDef({nodeName : 'h4', attributes : [{textContent : worker}]}));
+							return workerActionsTemplate
+						});
+					}
+					else {
+						const workerActionTemplate = getSartAllButton(Object.values(workers), endpointNames);
+						workerActionTemplate.members.unshift(TemplateFactory.createHostDef({nodeName : 'h4', attributes : [{textContent : 'Run Avatar'}]}));
+						buttonSectionMembers = [
+							workerActionTemplate
+						];
+					}
 					
 					const buttonSectionTemplate = get_column_template('Actions');
 					buttonSectionTemplate.members[1].members = buttonSectionMembers;
 					const workerCards = new App.componentTypes.CompoundComponent(buttonSectionTemplate, root.view);
-					
 
 					// Logs Lists section
 					const logsSectionTemplate = get_column_template('Logs');
@@ -26984,11 +27135,21 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 						UIManager.acquireLogElement(workerNames[key], listComponent.view.getMasterNode());
 					});
 					// Check statuses of all workers at initialization (in case the page has been reloaded on an intermediate state)
-					workerCards._children[1]._children.forEach(function(workerCard) { workerCard.streams.statusFeedback.value = statuses['stopped'];}); // Set state optimistically at first
-					workerCards._children[1]._children.forEach(function(buttonComponent, key) {
-						apiInterpreter.appInitCheck(key, buttonComponent);
-						UIManager.acquireButtonRefreshStreams(workerNames[key], buttonComponent.streams.statusFeedback);
-					});
+					if (location.pathname.includes('admin')) {
+						workerCards._children[1]._children.forEach(function(workerCard) { workerCard.streams.statusFeedback.value = statuses['stopped'];}); // Set state optimistically at first
+						workerCards._children[1]._children.forEach(function(buttonComponent, key) {
+							apiInterpreter.appInitCheck(key, buttonComponent);
+							UIManager.acquireButtonRefreshStreams(workerNames[key], buttonComponent.streams.statusFeedback);
+						});
+					}
+					else {
+						const buttonComponent = workerCards._children[1]._children[0];
+						buttonComponent.streams.statusFeedback.value = statuses['stopped'];
+						Object.keys(workers).forEach(function(workerName, key) {
+							apiInterpreter.appInitCheck(key, buttonComponent);
+							UIManager.acquireButtonRefreshStreams(workerName, buttonComponent.streams.statusFeedback);
+						});
+					}
 					
 					// inner styles
 					const styleElem = document.createElement('style');

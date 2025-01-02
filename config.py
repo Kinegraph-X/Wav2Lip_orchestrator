@@ -6,7 +6,7 @@ from args_parser import args
 
 class MainConfig():
     run_server_command = ""
-    server_status_command = ""
+    remote_env_init_command = "source /settings/.lightningrc && "
     def __init__(self):
         if args.ssh_addr.split("@")[1] == "localhost":
             self.run_server_command = f'cd "{os.getenv("SERVER_PATH")}" && python -u daemon.py'

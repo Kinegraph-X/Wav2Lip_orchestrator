@@ -35,6 +35,7 @@ class WorkerManager:
             raise RuntimeError(f"No instance available for Worker {name}.")
         if cmd_line_args.ssh_addr:
             try:
+                # for ssh connecting processes, don't forget to adapt the remote env init command to the actual ssh env of your provider (in config.py)
                 self.workers[name].start()
                 self.workers[name].state = WorkerState.RUNNING
             except Exception as e:
