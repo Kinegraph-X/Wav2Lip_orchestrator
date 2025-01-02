@@ -9,7 +9,7 @@ load_dotenv()
 from args_parser import args
 
 if args.ssh_addr.split("@")[1] == "localhost":
-	key_file = os.getenv("SSH_KEY_PATH")
+	key_file = os.getenv("SSH_KEY_FILE")
 else:
 	key_file = os.getenv("SSH_PUBLIC_KEY_FILE")
 
@@ -19,10 +19,11 @@ def get_time():
 
 class ServerWorker(Process):
 	name = "server"
-	debug = args.debug
 
-	def __init__(self, **kwargs):
+	def __init__(self, debug=False, dist=False, avatar_type = '', **kwargs):
 		super(ServerWorker, self).__init__()
+		self.debug = debug
+		self.dist = dist
 		self.state = None
 		self.print_queue = None
 		self.dest_con, self.origin_con = multiprocessing.Pipe()
@@ -30,16 +31,15 @@ class ServerWorker(Process):
 	def run(self):
 		try:
 			self.ssh_manager = SSHManager(args.ssh_addr, key_file=key_file)
-			self.ssh_manager.connect_to_server()
-
-			if self.debug:
-				server_command = f"cd {os.path.abspath('../Wav2Lip_with_cache')} && python -u daemon.py"
-			elif self.dist:
-				server_command = f"cd {os.path.abspath('../../../Wav2Lip_with_cache')} && python -u daemon.py"
-			else:
-				server_command = f"cd {os.path.abspath('Wav2Lip_with_cache')} && python -u daemon.py"
-
+			self.ssh_manager.connect_to_server(self.print_queue)
 			try:
+				if self.debug:
+					server_command = f"cd {os.path.abspath('../Wav2Lip_with_cache')} && python -u daemon.py"
+				elif self.dist:
+					server_command = f"cd {os.path.abspath('../../../Wav2Lip_with_cache')} && python -u daemon.py"
+				else:
+					server_command = f'source /settings/.lightningrc && cd Wav2Lip_with_cache && python -u daemon.py'
+
 				self.ssh_manager.run_command(server_command, self.print_queue, self.dest_con)
 
 				while not self.dest_con.poll(timeout = 0.1):
@@ -49,9 +49,10 @@ class ServerWorker(Process):
 				self.ssh_manager.disconnect(self.print_queue)
 			except RuntimeError as e:
 				self.print_queue.put(f"Failed to run the command start the server: {e}")
-				raise RuntimeError(f"Failed to run the command start the server: {e}")
+				raise Exception(f"Failed to run the command start the server: {e}")
 		except Exception as e:
-			self.print_queue.put(f'Raised exception in ServerWorker {str(e)}')
+			self.print_queue.put(f'Raised exception when SSH-ing in ServerWorker {str(e)}')
+			raise Exception(f"Raised exception when SSH-ing in ServerWorker {str(e)}")
 		
 	def terminate(self):
 		self.origin_con.send('stop')
@@ -60,14 +61,18 @@ class ServerWorker(Process):
 
 class PlaybackWorker(Process):
 	name = "playback"
-	debug = args.debug
-	dist = args.dist
 
-	def __init__(self, **kwargs):
+	def __init__(self, debug=False, dist=False, avatar_type = '', **kwargs):
 		super(PlaybackWorker, self).__init__()
-		# self.dest_con = None
-		# self.origin_con = None
-		self.exit_flag_path = "../Wav2Lip_resident/exit_flag.txt"
+		self.debug = debug
+		self.dist = dist
+		self.avatar_type = avatar_type
+		if self.debug:
+			self.exit_flag_path = "../Wav2Lip_resident/exit_flag.txt"
+		elif self.dist:
+			self.exit_flag_path = "../video_playback/exit_flag.txt"
+		else:
+			self.exit_flag_path = "exit_flag.txt"
 		self.dest_con, self.origin_con = multiprocessing.Pipe()
 		self.state = None
 		self.print_queue = None
@@ -78,11 +83,11 @@ class PlaybackWorker(Process):
 		try:
 			# command = 'python -u video_playback_vlc.py'
 			if self.debug:
-				executable_path = os.path.abspath("../Wav2Lip_resident/Avatar_video_playback.dist/Avatar_video_playback.exe")
+				executable_path = os.path.abspath(f"../Wav2Lip_resident/Avatar_video_playback.dist/Avatar_video_playback.exe --avatar_type {self.avatar_type}")
 			elif self.dist:
-				executable_path = os.path.abspath("../video_playback/Avatar_video_playback.exe")
+				executable_path = os.path.abspath(f"../video_playback/Avatar_video_playback.exe --avatar_type {self.avatar_type}")
 			else:
-				executable_path = os.path.abspath("video_playback/Avatar_video_playback.exe")
+				executable_path = os.path.abspath(f"Avatar_video_playback.exe --avatar_type {self.avatar_type}")
 
 			sp = subprocess.Popen(
 				# command,
@@ -140,26 +145,27 @@ class PlaybackWorker(Process):
 
 class ClientWorker(Process):
 	name = "client"
-	debug = args.debug
-	dist = args.dist
 
-	def __init__(self, **kwargs):
+	def __init__(self, debug=False, dist=False, avatar_type = None, **kwargs):
 		super().__init__()
+		self.debug = debug
+		self.dist = dist
+		self.avatar_type = avatar_type
 		self.dest_con, self.origin_con = multiprocessing.Pipe()
 		self.state = None
 		self.print_queue = None
 		self.output_queue = None
 		
-	def run(self):
+	def run(self, ):
 		self.output_queue = multiprocessing.Queue()
 		try:
 			# command = 'python -u worker.py'
 			if self.debug:
-				executable_path = os.path.abspath("../Wav2Lip_resident/Avatar_runner.dist/Avatar_runner.exe")
+				executable_path = os.path.abspath(f"../Wav2Lip_resident/Avatar_runner.dist/Avatar_runner.exe --avatar_type {self.avatar_type}")
 			elif self.dist:
-				executable_path = os.path.abspath("../runner/Avatar_runner.exe")
+				executable_path = os.path.abspath(f"../runner/Avatar_runner.exe --avatar_type {self.avatar_type}")
 			else:
-				executable_path = os.path.abspath("worker/Avatar_runner.exe")
+				executable_path = os.path.abspath(f"Avatar_runner.exe --avatar_type {self.avatar_type}")
 			sp = subprocess.Popen(
 				executable_path,
 				# cwd = "../Wav2Lip_resident/",

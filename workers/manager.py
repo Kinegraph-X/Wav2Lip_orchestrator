@@ -1,4 +1,13 @@
-import multiprocessing
+import sys, multiprocessing
+from multiprocessing import get_context
+# if getattr(sys, 'frozen', False):
+
+ctx = get_context('spawn')  # Explicitly get a new context with 'spawn'
+multiprocessing.freeze_support()
+multiprocessing.set_start_method('spawn', force=True)
+
+from args_parser import args as cmd_line_args
+
 from workers.worker_states import WorkerState
 from workers.workers_definitions import workers
 
@@ -15,7 +24,7 @@ class WorkerManager:
             self.reset_worker_instance(name)
 
     def reset_worker_instance(self, name):
-        self.workers[name] = self.worker_ctors[name]()
+        self.workers[name] = self.worker_ctors[name](debug = cmd_line_args.debug, dist = cmd_line_args.dist, avatar_type = cmd_line_args.avatar_type)
         self.workers[name].print_queue = self.message_queues[name]
         self.workers[name].state = WorkerState.STOPPED
 
@@ -24,13 +33,14 @@ class WorkerManager:
             raise RuntimeError(f"ERROR : {name} : Worker is already running.")
         elif name not in self.workers:
             raise RuntimeError(f"No instance available for Worker {name}.")
-        try:
-            self.workers[name].start()
-            self.workers[name].state = WorkerState.RUNNING
-        except Exception as e:
-            raise e
+        if cmd_line_args.ssh_addr:
+            try:
+                self.workers[name].start()
+                self.workers[name].state = WorkerState.RUNNING
+            except Exception as e:
+                raise e
 
-        return self.message_queues[name]
+        return self.format_status(name, f"{self.workers[name].state.value}")
 
     def stop_worker(self, name):
         worker = self.workers[name]

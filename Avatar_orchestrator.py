@@ -6,7 +6,7 @@
 # nuitka-project: --include-data-dir=front=front
 # nuitka-project: --include-data-dir=static=static
 # nuitka-project: --include-data-files=.env.example=.env.example
-# nuitka-project: --windows-console-mode=disable
+
 
 import validate_env_vars
 from mdns_service import start_mdns_service

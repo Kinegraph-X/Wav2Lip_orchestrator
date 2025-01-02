@@ -44,10 +44,9 @@ def worker_routes(manager):
     def start_worker():
         data = request.json
         name = data.get("name")
-        #target = getattr(your_worker_targets, data.get("target"))
         try:
-            manager.start_worker(name)
-            return jsonify({"type" : "success", "message": f"{get_time()} SUCCESS : Request for {name} startup transmitted successfully."})
+            result = manager.start_worker(name)
+            return jsonify({"type" : "success", "message": f"{get_time()} SUCCESS : Request for {name} startup transmitted successfully.", "message_stack" : result['message_stack']})
         except Exception as e:
             return jsonify({"type" : "error", "message" : f"{get_time()} {str(e)}"}), 200
 
@@ -74,7 +73,6 @@ def worker_routes(manager):
         name = data.get("name")
         status = manager.get_worker_status(name)
         if not type(status["message_stack"]) is list:
-            print(type(status["message_stack"]))
             if type(status["message_stack"]) is str:
                 status["message_stack"] = [status["message_stack"]]
             else:

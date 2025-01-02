@@ -1,3 +1,4 @@
+import sys
 import argparse
 
 parser = argparse.ArgumentParser(description='Worker which records an audio file from the mic, sneds it to a Google Notebook and retrieve the result of the computation')
@@ -6,10 +7,13 @@ parser.add_argument('--server_addr', type=str,
                     required=False,
                     default='http://127.0.0.1:3000'
                     )
+parser.add_argument('--avatar_type', type=str, 
+					help='This defines which generic avatar you want to use',
+                    required=True
+                    )
 parser.add_argument('--ssh_addr', type=str, 
 					help='This orchestrator is meant to remotely start your server : please provide tu url/port of the ssh server',
-                    required=True,
-                    default=''
+                    required=True
                     )
 parser.add_argument('--debug', 
 					help='This will replace the relative paths of the modules with absolute urls from the source code',
@@ -21,4 +25,10 @@ parser.add_argument('--dist',
                     required=False,
                     action='store_true'
                     )
+
 args = parser.parse_args()
+
+if not args.ssh_addr or not args.avatar_type:
+        print("Error: --ssh_addr & --avatar_type arguments are required.")
+        parser.print_help()
+        sys.exit(1)

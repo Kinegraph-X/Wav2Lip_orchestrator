@@ -51,8 +51,14 @@ class SSHManager:
 					timeout=self.timeout
 				)
 		except (NoValidConnectionsError, SSHException) as e:
-			queue.put(f"EXCEPTION : {e}")
-			raise ConnectionError(f"Failed to connect to {self.hostname}: {e}")
+			queue.put(f"NoValidConnectionsError || SSHException {self.username} {self.hostname}: {e}")
+			raise ConnectionError(f"Failed to connect to {self.username} {self.hostname}: {e}")
+		except (Exception) as e:
+			queue.put(f"EXCEPTION || SSHException {self.username} {self.hostname}: {e}")
+			raise Exception(f"Failed to connect to {self.username} {self.hostname}: {e}")
+		
+		self.client.get_transport().set_keepalive(10)
+		queue.put(f'{get_time()} INFO : Connected to SSH server')
 
 	def disconnect(self, queue):
 		if self.client:
@@ -96,12 +102,12 @@ class SSHManager:
 			raise ConnectionError("SSH connection is not established.")
 		try:
 			queue.put(f"{get_time()} INFO : Running a command on the remote server")
-			stdin, stdout, stderr = self.client.exec_command(command)
+			stdin, stdout, stderr = self.client.exec_command(command, get_pty=True)
 
 			threading.Thread(target = self.read_output, args = (stdout, stderr, queue), daemon = True).start()
 
 		except Exception as e:
-			raise RuntimeError(f"Failed to execute command '{command}': {e}")
+			raise Exception(f"Failed to execute command '{command}': {e}")
 
 	def read_output(self, stdout, stderr, queue):
 		try:
@@ -114,11 +120,13 @@ class SSHManager:
 			exit_status = stdout.channel.recv_exit_status()
 			# output = stdout.read().decode().strip()
 			error = stderr.read().decode().strip()
+			if error:
+				queue.put(f'{get_time()} : ERROR : SSH server command failed {error}')
 			
 			# abrupt exit code is expected
 			# if exit_status != 0:
 			# 	raise RuntimeError(f"Command failed: {error}")
-			queue.put(f'{get_time()} : INFO : SSH server readeline closed : no stderr will be shown')
+			queue.put(f'{get_time()} : INFO : SSH server readeline closed with exit code {exit_status}: no stderr will be shown')
 		except Exception as e:
 			queue.put(f'Thread reading the output of SSH was terminated with an exception : {e}')
 

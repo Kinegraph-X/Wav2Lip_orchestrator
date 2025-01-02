@@ -26255,7 +26255,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		if (hasRequiredConstants) return constants_1;
 		hasRequiredConstants = 1;
 		const constants = {
-		    api_url : 'http://127.0.0.1:3001',
+		    api_url : 'http://127.0.0.1:51312',
 		    endpoints : {
 		        run : '/start_worker',
 		        stop : '/stop_worker',
