@@ -99,11 +99,11 @@ class SSHManager:
 						pid_match = re.search('\d+', stdout.read().strip().decode('utf-8'))
 						stdout.channel.close()
 						stderr.channel.close()
-						queue.put(f"{get_time()} DEBUG: re search output: {pid_match}")
+						# queue.put(f"{get_time()} DEBUG: re search output: {pid_match}")
 						
 						if pid_match:
 							pid = pid_match.group(0)
-							queue.put(f"{get_time()} INFO : re match for pid {pid}")
+							# queue.put(f"{get_time()} INFO : re match for pid {pid}")
 							# stdin, stdout, stderr = self.client.exec_command(f'echo "that command worked"')
 							# test_command = stdout.read().strip().decode('utf-8')
 							# stdout.channel.close()
@@ -145,7 +145,7 @@ class SSHManager:
 			raise ConnectionError("SSH connection is not established.")
 		try:
 			queue.put(f"{get_time()} INFO : Running a command on the remote server")
-			stdin, stdout, stderr = self.client.exec_command(command, get_pty=True)
+			stdin, stdout, stderr = self.client.exec_command(command)
 
 			threading.Thread(target = self.read_output, args = (stdout, stderr, queue), daemon = True).start()
 

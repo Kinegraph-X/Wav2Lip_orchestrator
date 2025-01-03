@@ -26255,6 +26255,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		if (hasRequiredConstants) return constants_1;
 		hasRequiredConstants = 1;
 		const constants = {
+		    admin : 'admin',
 		    api_url : 'http://127.0.0.1:51312',
 		    endpoints : {
 		        run : '/start_worker',
@@ -26262,11 +26263,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		        status : '/status_worker',
 		        restart : null,
 		    },
-		    workers : {
-		        server : 'server',
-		        playback : 'playback',
-		        client : 'client',
-		    },
+		    workers : {},
 		    statuses : {
 		        running : 'running',
 		        stopped : 'stopped',
@@ -26278,6 +26275,20 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		        client : ['INFO : Connected to video playback socket.', 'INFO : Client subprocess terminated.']
 		    }
 		};
+
+		if (location.pathname.includes(constants.admin)) {
+		    constants.workers = {
+		        server : 'server',
+		        playback : 'playback',
+		        client : 'client',
+		    };
+		}
+		else  {
+		    constants.workers = {
+		        playback : 'playback',
+		        client : 'client',
+		    };
+		}
 
 		constants_1 = constants;
 		return constants_1;
@@ -26496,6 +26507,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		                        items.push(dataset.newItem('FINAL STATUS CHECK - ' + message));
 		                    });
 		                    dataset.pushApply(items);
+		                    UIManager.updateScroll(from);
 		                    
 		                    let newStatus;
 		                    if (isSuccessTrigger) {
@@ -26833,7 +26845,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		                        const self = this;
 		                        const endpoint = endpointNames[e.data.key];
 		                        if (e.data.key === 3) {
-		                            for (let i = 0, max = 2; i < max; i++) {
+		                            for (let i = 0, max = workerNames.length; i < max; i++) {
 		                                let workerName = workerNames[i];
 		                                setTimeout(function() {
 		                                    makeRestartRequest.call(self, workerName);
@@ -26841,7 +26853,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		                            }
 		                        }
 		                        else {
-		                            for (let i = 0, max = 2; i < max; i++) {
+		                            for (let i = 0, max = workerNames.length; i < max; i++) {
 		                                let workerName = workerNames[i];
 		                                setTimeout(function() {
 		                                    makeStandardRequest.call(self, workerName, endpoint);
@@ -27049,6 +27061,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 		hasRequiredApp = 1;
 		const {App, TemplateFactory} = requireFormant();
 		const {endpoints, workers, statuses} = requireConstants();
+		const constants = requireConstants();
 		const getWorkerButtonsGroup = requireWorkerButtonsGroup();
 		const getSartAllButton = requireStartAllButtonsGroup();
 		const getListsTemplates = requireListTemplate();
@@ -27086,7 +27099,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 					
 					const endpointNames = Object.keys(endpoints);
 					let buttonSectionMembers;
-					if (location.pathname.includes('admin')) {
+					if (location.pathname.includes(constants.admin)) {
 						buttonSectionMembers = Object.keys(workers).map(function(worker, key) {
 							const workerActionsTemplate = getWorkerButtonsGroup(worker, endpointNames);
 							workerActionsTemplate.members.unshift(TemplateFactory.createHostDef({nodeName : 'h4', attributes : [{textContent : worker}]}));
@@ -27135,7 +27148,7 @@ var Wav2Lip_orchestrator_frontendLauncher = (function () {
 						UIManager.acquireLogElement(workerNames[key], listComponent.view.getMasterNode());
 					});
 					// Check statuses of all workers at initialization (in case the page has been reloaded on an intermediate state)
-					if (location.pathname.includes('admin')) {
+					if (location.pathname.includes(constants.admin)) {
 						workerCards._children[1]._children.forEach(function(workerCard) { workerCard.streams.statusFeedback.value = statuses['stopped'];}); // Set state optimistically at first
 						workerCards._children[1]._children.forEach(function(buttonComponent, key) {
 							apiInterpreter.appInitCheck(key, buttonComponent);

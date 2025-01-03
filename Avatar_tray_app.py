@@ -1,4 +1,6 @@
-# nuitka-project: --include-data-file=Avatar_icon.png=Avatar_icon.png
+# nuitka-project: --windows-icon-from-ico=avatar_icon.ico
+# nuitka-project: --include-data-file=avatar_icon.png=avatar_icon.png
+# nuitka-project: --include-data-file="Chatty Avatar.lnk=Chatty Avatar.lnk"
 # nuitka-project: --include-data-files=.env.example=.env.example
 # nuitka-project: --windows-console-mode=disable
 

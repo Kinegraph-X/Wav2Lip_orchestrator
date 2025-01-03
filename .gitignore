@@ -6,5 +6,6 @@ Avatar_orchestrator.dist/
 Avatar_tray_app.build/
 Avatar_tray_app.dist/
 dist/
+Chatty_Avatar.zip
 
 !static/keys/readme.md

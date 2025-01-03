@@ -49,7 +49,7 @@ class ServerWorker(Process):
 					continue
 				
 				self.ssh_manager.send_sigint(self.print_queue)
-				self.print_queue.put(f"{get_time()} INFO : Confirmed function returnd after sending SIGINT")
+				# self.print_queue.put(f"{get_time()} INFO : Confirmed function returnd after sending SIGINT")
 				self.ssh_manager.disconnect(self.print_queue)
 			except RuntimeError as e:
 				self.print_queue.put(f"Failed to run the command start the server: {e}")
