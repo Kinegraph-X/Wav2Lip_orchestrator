@@ -1,6 +1,7 @@
 # nuitka-project: --windows-icon-from-ico=avatar_icon.ico
 # nuitka-project: --include-data-file=avatar_icon.png=avatar_icon.png
 # nuitka-project: --include-data-file="Chatty Avatar.lnk=Chatty Avatar.lnk"
+# nuitka-project: --include-data-file="Chatty Avatar (Controler).lnk=Chatty Avatar (Controler).lnk"
 # nuitka-project: --include-data-files=.env.example=.env.example
 # nuitka-project: --windows-console-mode=disable
 
@@ -52,7 +53,7 @@ menu = Menu(
     MenuItem("Start Avatar Orchestrator (Man)", start_orchestrator),
     MenuItem("Start Avatar Orchestrator (Woman)", start_orchestrator),
     MenuItem("Start Avatar Orchestrator (EBU_n19)", start_orchestrator, visible = True if os.getlogin() == 'arte' else False),
-    MenuItem("Start Avatar Orchestrator (local server, Man only)", start_orchestrator_local),
+    # MenuItem("Start Avatar Orchestrator (local server, Man only)", start_orchestrator_local),
     MenuItem("Stop Avatar Orchestrator", stop_orchestrator),
     MenuItem("Quit", quit_app),
 )
